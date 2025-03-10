@@ -14,9 +14,16 @@ function App() {
     const [currentSong, setCurrentSong] = useState(null);
     const [userGuess, setUserGuess] = useState('');
     const [guessResult, setGuessResult] = useState('');
+    const [guessStatus, setGuessStatus] = useState(''); // 'correct' or 'incorrect'
     const [correctGuesses, setCorrectGuesses] = useState(0);
     const [authStatus, setAuthStatus] = useState('Not Authenticated');
-    const [showPopup, setShowPopup] = useState(false);
+    const [showSpotifyAuth, setShowSpotifyAuth] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // New state for username and password
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
         const hash = window.location.hash;
@@ -35,6 +42,7 @@ function App() {
     }, []);
 
     const handleSpotifyLogin = () => {
+        setIsLoading(true);
         const scopes = ['user-top-read'];
         const authUrl = `${SPOTIFY_AUTH_ENDPOINT}?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${SPOTIFY_REDIRECT_URI}&scope=${scopes.join(' ')}&response_type=token&show_dialog=true`;
         window.location.href = authUrl;
@@ -64,6 +72,7 @@ function App() {
 
     const fetchLikedSongs = async (token) => {
         try {
+            setIsLoading(true);
             const response = await axios.get(`${SPOTIFY_API_BASE_URL}/me/top/tracks`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -73,9 +82,11 @@ function App() {
                 },
             });
             setLikedSongs(response.data.items);
+            setIsLoading(false);
         } catch (error) {
             console.error('Error fetching liked songs:', error);
             console.error('Full error response:', error.response);
+            setIsLoading(false);
         }
     };
 
@@ -85,6 +96,7 @@ function App() {
             const song = likedSongs[randomIndex];
             setCurrentSong(song);
             setGuessResult('');
+            setGuessStatus('');
             setUserGuess('');
         } else {
             alert('No liked songs fetched. Please log in and ensure you have liked songs on Spotify.');
@@ -99,93 +111,198 @@ function App() {
 
         if (normalizedGuess === normalizedSongTitle) {
             setGuessResult('Correct!');
+            setGuessStatus('correct');
             setCorrectGuesses(correctGuesses + 1);
             if (correctGuesses + 1 >= 3) {
                 setAuthStatus('Authenticated!');
                 setCurrentSong(null);
-                setShowPopup(false)
+                setShowSpotifyAuth(false);
+                setIsAuthenticated(true);
             } else {
                 setTimeout(startGame, 1500);
             }
         } else {
             setGuessResult(`Incorrect. The song was: ${currentSong.name}`);
+            setGuessStatus('incorrect');
             setCurrentSong(null);
         }
     };
 
     const playPreview = async () => {
         if (currentSong) {
-            const spotifyUrl = currentSong.external_urls.spotify;
-            const previewUrls = await getSpotifyLinks(spotifyUrl);
+            try {
+                console.log(currentSong)
+                setIsLoading(true);
+                const spotifyUrl = currentSong.external_urls.spotify;
+                const previewUrls = await getSpotifyLinks(spotifyUrl);
+                setIsLoading(false);
 
-            if (previewUrls && previewUrls.length > 0) {
-                const firstPreviewUrl = previewUrls[0];
+                if (previewUrls && previewUrls.length > 0) {
+                    const firstPreviewUrl = previewUrls[0];
 
-                try {
-                    const audioElement = new Audio(firstPreviewUrl);
-                    audioElement.play();
-                } catch (audioError) {
-                    console.error("Error playing audio with scraped URL:", audioError);
-                    alert("Error playing preview. See console for details.");
+                    try {
+                        const audioElement = new Audio(firstPreviewUrl);
+                        audioElement.play();
+                    } catch (audioError) {
+                        console.error("Error playing audio with scraped URL:", audioError);
+                        alert("Error playing preview. See console for details.");
+                    }
+                } else {
+                    alert('No preview URLs found via scraping.');
                 }
-
-            } else {
-                alert('No preview URLs found via scraping.');
+            } catch (error) {
+                setIsLoading(false);
+                console.error("Error fetching preview URLs:", error);
+                alert("Error fetching preview. See console for details.");
             }
         } else {
             alert('No song selected for preview.');
         }
     };
 
-    const handleAuthenticate = () => {
-        setShowPopup(true);
-        startGame();
+    const handleHumanVerification = () => {
+        if (!accessToken) {
+            setShowSpotifyAuth(true);
+        } else {
+            startGame();
+            setShowSpotifyAuth(true);
+        }
+    };
+    
+    const handleLogin = (e) => {
+        e.preventDefault();
+        // In a real app, you would validate credentials here
+        // For now, we'll just consider the user authenticated if they complete the Spotify challenge
+        if (isAuthenticated) {
+            alert('Login successful!');
+        } else {
+            alert('Please complete the human verification first.');
+        }
+    };
+
+    const cancelVerification = () => {
+        setShowSpotifyAuth(false);
+        setCurrentSong(null);
     };
 
     return (
         <div className="app-container">
-            <h1>Spotify 2FA - Guess the Song</h1>
+            <h1>Login</h1>
+            
+            <form className="login-form" onSubmit={handleLogin}>
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)} 
+                        placeholder="Enter your username"
+                        required 
+                    />
+                </div>
+                
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        placeholder="Enter your password"
+                        required 
+                    />
+                </div>
+                
+                <div className="human-verification">
+                    <label>
+                        <input 
+                            type="checkbox" 
+                            checked={isAuthenticated} 
+                            onChange={handleHumanVerification} 
+                        />
+                        I am a human
+                    </label>
+                </div>
+                
+                <button type="submit" className="login-button">Login</button>
+            </form>
 
-            {!accessToken ? (
-                <button onClick={handleSpotifyLogin}>Login with Spotify</button>
-            ) : (
-                <div>
-                    <p>Logged in with Spotify!</p>
-
-                    {likedSongs.length > 0 && (
-                        <div>
-                            {authStatus !== 'Authenticated!' ? (
-                                <div>
-                                    {correctGuesses < 3 && !currentSong && (
-                                        <button onClick={handleAuthenticate}>Authenticate</button>
-                                    )}
-
-                                    {showPopup && currentSong && (
-                                        <div className="popup">
-                                            <div className="popup-content">
-                                                <h2>Guess the Song!</h2>
-                                                <button onClick={playPreview}>Play Preview</button>
+            {showSpotifyAuth && (
+                <div className="popup-overlay">
+                    <div className="spotify-auth-popup">
+                        <h2>Human Verification</h2>
+                        <p>Please verify you're human by guessing songs from your Spotify library</p>
+                        
+                        {!accessToken ? (
+                            <div>
+                                <p>Connect your Spotify account to proceed</p>
+                                <button 
+                                    onClick={handleSpotifyLogin}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? 'Connecting...' : 'Connect Spotify'}
+                                </button>
+                                <button 
+                                    onClick={cancelVerification} 
+                                    className="secondary"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <div>
+                                {isLoading ? (
+                                    <p>Loading your music... please wait</p>
+                                ) : likedSongs.length > 0 ? (
+                                    <div>
+                                        {!currentSong ? (
+                                            <div>
+                                                <button onClick={startGame}>Start Verification</button>
+                                                <button 
+                                                    onClick={cancelVerification} 
+                                                    className="secondary"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="song-guess-container">
+                                                <h3>Guess the Song!</h3>
+                                                <button onClick={playPreview}>
+                                                    {isLoading ? 'Loading...' : 'Play Preview'}
+                                                </button>
                                                 <input
                                                     type="text"
                                                     placeholder="Enter song title"
                                                     value={userGuess}
                                                     onChange={(e) => setUserGuess(e.target.value)}
+                                                    onKeyPress={(e) => e.key === 'Enter' && checkGuess()}
                                                 />
-                                                <button onClick={checkGuess}>Check Guess</button>
-                                                {guessResult && <p>{guessResult}</p>}
-                                                <p>Correct Guesses: {correctGuesses} / 3</p>
+                                                <button onClick={checkGuess}>Submit Guess</button>
+                                                
+                                                {guessResult && (
+                                                    <p className={`guess-result ${guessStatus}`}>
+                                                        {guessResult}
+                                                    </p>
+                                                )}
+                                                
+                                                <div className="progress-indicator">
+                                                    <div 
+                                                        className="progress-bar" 
+                                                        style={{width: `${(correctGuesses / 3) * 100}%`}}
+                                                    ></div>
+                                                </div>
+                                                <p>Progress: {correctGuesses} / 3 correct</p>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="auth-success">
-                                    <h2>{authStatus}</h2>
-                                    <p>You have successfully authenticated!</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p>Loading your music... please wait</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
