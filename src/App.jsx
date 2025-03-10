@@ -4,7 +4,7 @@ import './App.css';
 import * as cheerio from 'cheerio';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
-const SPOTIFY_REDIRECT_URI = 'https://spotify-auth-puce.vercel.app/';
+const SPOTIFY_REDIRECT_URI = 'https://spotify-auth-puce.vercel.app';
 const SPOTIFY_AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_API_BASE_URL = 'https://api.spotify.com/v1';
 
