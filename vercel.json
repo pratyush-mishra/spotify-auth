@@ -1,0 +1,9 @@
+{
+    "rewrites": [
+      {
+        "source": "/spotify-scrape/:path*",
+        "destination": "https://open.spotify.com/:path*"
+      }
+    ]
+  }
+  
