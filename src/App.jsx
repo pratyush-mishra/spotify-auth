@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import * as cheerio from 'cheerio';
+import.meta.env.SPOTIFY_CLIENT_ID
 
-const SPOTIFY_CLIENT_ID = '4ec4fff643014cdfa7e990272bbc815f';
+const SPOTIFY_CLIENT_ID = SPOTIFY_CLIENT_ID;
 const SPOTIFY_REDIRECT_URI = 'http://localhost:5173';
 const SPOTIFY_AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_API_BASE_URL = 'https://api.spotify.com/v1';
