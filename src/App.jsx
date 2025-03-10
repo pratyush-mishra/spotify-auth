@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 import * as cheerio from 'cheerio';
-import.meta.env.SPOTIFY_CLIENT_ID
 
-const SPOTIFY_CLIENT_ID = SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 const SPOTIFY_REDIRECT_URI = 'http://localhost:5173';
 const SPOTIFY_AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_API_BASE_URL = 'https://api.spotify.com/v1';
@@ -17,6 +16,7 @@ function App() {
     const [guessResult, setGuessResult] = useState('');
     const [guessStatus, setGuessStatus] = useState(''); // 'correct' or 'incorrect'
     const [correctGuesses, setCorrectGuesses] = useState(0);
+    const [incorrectGuesses, setIncorrectGuesses] = useState(0);
     const [authStatus, setAuthStatus] = useState('Not Authenticated');
     const [showSpotifyAuth, setShowSpotifyAuth] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +25,9 @@ function App() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // useRef to store the audio element
+    const audioRef = useRef(null);
 
     useEffect(() => {
         const hash = window.location.hash;
@@ -107,10 +110,16 @@ function App() {
     const checkGuess = () => {
         if (!currentSong) return;
 
+        // Stop the audio if it's playing
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+
         const normalizedGuess = userGuess.trim().toLowerCase();
         const normalizedSongTitle = currentSong.name.trim().toLowerCase();
 
-        if (normalizedGuess === normalizedSongTitle) {
+        if (normalizedSongTitle.includes(normalizedGuess) && normalizedGuess!=='') {
             setGuessResult('Correct!');
             setGuessStatus('correct');
             setCorrectGuesses(correctGuesses + 1);
@@ -125,7 +134,15 @@ function App() {
         } else {
             setGuessResult(`Incorrect. The song was: ${currentSong.name}`);
             setGuessStatus('incorrect');
-            setCurrentSong(null);
+            setIncorrectGuesses(incorrectGuesses + 1);
+            if (incorrectGuesses + 1 >= 2) {
+                setAuthStatus('Not Authenticated');
+                setCurrentSong(null);
+                setShowSpotifyAuth(false);
+                setIsAuthenticated(false);
+            }
+            setTimeout(startGame, 1500);
+
         }
     };
 
@@ -142,8 +159,9 @@ function App() {
                     const firstPreviewUrl = previewUrls[0];
 
                     try {
-                        const audioElement = new Audio(firstPreviewUrl);
-                        audioElement.play();
+                        // Store the audio element in the ref so it can be paused later
+                        audioRef.current = new Audio(firstPreviewUrl);
+                        audioRef.current.play();
                     } catch (audioError) {
                         console.error("Error playing audio with scraped URL:", audioError);
                         alert("Error playing preview. See console for details.");

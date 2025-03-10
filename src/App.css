@@ -231,3 +231,37 @@ input[type="password"]:focus {
   border-radius: 5px;
   transition: width 0.3s ease;
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Existing global body styles remain unchanged */
+body {
+  background-color: #1a1a1a;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ...other styles... */
+
+/* Adjust input styles for consistency */
+input[type="text"],
+input[type="password"] {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 16px;
+  background-color: #333;
+  color: #fff;
+  transition: all 0.3s;
+  margin: 0;  /* Reset any default margins */
+}
