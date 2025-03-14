@@ -123,7 +123,7 @@ function App() {
             setGuessResult('Correct!');
             setGuessStatus('correct');
             setCorrectGuesses(correctGuesses + 1);
-            if (correctGuesses + 1 >= 3) {
+            if (correctGuesses + 1 >= 2) {
                 setAuthStatus('Authenticated!');
                 setCurrentSong(null);
                 setShowSpotifyAuth(false);
@@ -309,7 +309,7 @@ function App() {
                                                 <div className="progress-indicator">
                                                     <div 
                                                         className="progress-bar" 
-                                                        style={{width: `${(correctGuesses / 3) * 100}%`}}
+                                                        style={{width: `${(correctGuesses / 2) * 100}%`}}
                                                     ></div>
                                                 </div>
                                                 <p>Progress: {correctGuesses} / 3 correct</p>
